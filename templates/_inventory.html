@@ -1,0 +1,11 @@
+<table border="1" width="100%" style="border-collapse: collapse;">
+    <tr><th>Barang</th><th>Kuantiti</th></tr>
+    {% for item in items %}
+    <tr>
+        <td style="padding:10px">{{ item['name'] }} <br> <small>{{ item['barcode'] }}</small></td>
+        <td style="padding:10px; text-align:center; font-weight:bold;">{{ item['quantity'] }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="2" style="padding:10px; text-align:center;">Tiada rekod. Sila scan.</td></tr>
+    {% endfor %}
+</table>

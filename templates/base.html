@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Pantry Pro</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f0f2f5; }
+        
+        /* Scanner Box */
+        .scanner-box { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .input-group { display: flex; gap: 10px; }
+        input[type="text"] { flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; outline: none; transition: border 0.3s; }
+        input[type="text"]:focus { border-color: #4CAF50; }
+        
+        /* Buttons */
+        button { padding: 10px 20px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: transform 0.1s; }
+        button:active { transform: scale(0.95); }
+        .btn-add { background: #4CAF50; color: white; }
+        .btn-remove { background: #ff9800; color: white; }
+        
+        /* Search Box */
+        .search-box { margin-bottom: 15px; }
+        
+        /* Toast Notification */
+        #toast {
+            visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center;
+            border-radius: 8px; padding: 16px; position: fixed; z-index: 1; left: 50%; bottom: 30px;
+            transform: translateX(-50%); opacity: 0; transition: opacity 0.5s, bottom 0.5s;
+        }
+        #toast.show { visibility: visible; opacity: 1; bottom: 50px; animation: fadeout 3s forwards; }
+        @keyframes fadeout { 0% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
+
+        /* Table Style is in _inventory.html */
+    </style>
+</head>
+<body>
+
+    <h2 style="text-align:center; color:#333;">📦 Smart Dapur</h2>
+
+    <div class="scanner-box">
+        <form hx-post="/update" hx-target="#inventory-area" hx-on::after-request="this.reset(); document.getElementById('code').focus();">
+            <div class="input-group">
+                <input type="text" name="barcode" id="code" placeholder="Scan Barcode..." autofocus autocomplete="off" required>
+                <button type="submit" name="action" value="add" class="btn-add">➕</button>
+                <button type="submit" name="action" value="remove" class="btn-remove">➖</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="search-box">
+        <input type="text" name="q" 
+               placeholder="🔍 Cari barang..." 
+               hx-get="/items" 
+               hx-trigger="keyup changed delay:300ms" 
+               hx-target="#inventory-area">
+    </div>
+
+    <div id="inventory-area">
+        {% include '_inventory.html' %}
+    </div>
+
+    <div id="toast"></div>
+
+</body>
+</html>
