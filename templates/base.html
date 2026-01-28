@@ -3,44 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Pantry Pro</title>
+    <title>Smart Pantry Alpine</title>
+    
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
+
     <style>
         body { font-family: 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f0f2f5; }
-        
-        /* Scanner Box */
         .scanner-box { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
         .input-group { display: flex; gap: 10px; }
-        input[type="text"] { flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; outline: none; transition: border 0.3s; }
+        input[type="text"] { flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; outline: none; }
         input[type="text"]:focus { border-color: #4CAF50; }
-        
-        /* Buttons */
-        button { padding: 10px 20px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: transform 0.1s; }
-        button:active { transform: scale(0.95); }
+        button { padding: 10px 20px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
         .btn-add { background: #4CAF50; color: white; }
         .btn-remove { background: #ff9800; color: white; }
-        
-        /* Search Box */
-        .search-box { margin-bottom: 15px; }
-        
-        /* Toast Notification */
-        #toast {
-            visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center;
-            border-radius: 8px; padding: 16px; position: fixed; z-index: 1; left: 50%; bottom: 30px;
-            transform: translateX(-50%); opacity: 0; transition: opacity 0.5s, bottom 0.5s;
-        }
-        #toast.show { visibility: visible; opacity: 1; bottom: 50px; animation: fadeout 3s forwards; }
-        @keyframes fadeout { 0% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
 
-        /* Table Style is in _inventory.html */
+        /* Toast Styles dikawal oleh Alpine 'x-show' dan transition */
+        .toast-container {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            z-index: 100; display: flex; flex-direction: column; gap: 10px;
+        }
+        .toast {
+            background: #333; color: white; padding: 12px 24px; border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2); font-weight: 500;
+        }
+        .bg-success { background: #2e7d32; }
+        .bg-warning { background: #f57c00; }
+        .bg-error { background: #c62828; }
     </style>
 </head>
-<body>
+<body x-data="pantryApp()">
 
-    <h2 style="text-align:center; color:#333;">📦 Smart Dapur</h2>
+    <h2 style="text-align:center; color:#333;">📦 Smart Pantry + Alpine</h2>
 
     <div class="scanner-box">
-        <form hx-post="/update" hx-target="#inventory-area" hx-on::after-request="this.reset(); document.getElementById('code').focus();">
+        <form hx-post="/update" 
+              hx-target="#inventory-area" 
+              hx-on::after-request="this.reset(); document.getElementById('code').focus();"
+              @submit="playBeep()">
+            
             <div class="input-group">
                 <input type="text" name="barcode" id="code" placeholder="Scan Barcode..." autofocus autocomplete="off" required>
                 <button type="submit" name="action" value="add" class="btn-add">➕</button>
@@ -49,19 +50,67 @@
         </form>
     </div>
 
-    <div class="search-box">
-        <input type="text" name="q" 
-               placeholder="🔍 Cari barang..." 
-               hx-get="/items" 
-               hx-trigger="keyup changed delay:300ms" 
-               hx-target="#inventory-area">
+    <div style="margin-bottom: 15px;">
+        <input type="text" name="q" placeholder="🔍 Cari barang..." 
+               hx-get="/items" hx-trigger="keyup changed delay:300ms" hx-target="#inventory-area"
+               style="width: 100%; box-sizing: border-box;">
     </div>
 
     <div id="inventory-area">
         {% include '_inventory.html' %}
     </div>
 
-    <div id="toast"></div>
+    <div class="toast-container" 
+         @htmx:after-swap.body="handleToast($event)">
+         
+        <div class="toast" 
+             x-show="showToast" 
+             x-transition.duration.300ms
+             :class="{ 'bg-success': toastType=='success', 'bg-warning': toastType=='warning', 'bg-error': toastType=='error' }"
+             style="display: none;">
+            <span x-text="toastMsg"></span>
+        </div>
+    </div>
+
+    <script>
+        function pantryApp() {
+            return {
+                showToast: false,
+                toastMsg: '',
+                toastType: 'info',
+                
+                // Bunyi Beep (Base64 pendek)
+                beepSound: new Audio("data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU"), // (Placeholder pendek)
+                
+                playBeep() {
+                    // Kita boleh guna beep sebenar atau sintesis browser
+                    let ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    let osc = ctx.createOscillator();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(800, ctx.currentTime);
+                    osc.connect(ctx.destination);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.1); // Bunyi 0.1 saat
+                },
+
+                handleToast(event) {
+                    // Tangkap header 'HX-Trigger' dari server
+                    let trigger = event.detail.xhr.getResponseHeader("HX-Trigger");
+                    if (trigger) {
+                        let data = JSON.parse(trigger);
+                        if (data.showToast) {
+                            this.toastMsg = data.showToast.message;
+                            this.toastType = data.showToast.type;
+                            this.showToast = true;
+                            
+                            // Auto hide selepas 3 saat
+                            setTimeout(() => { this.showToast = false }, 3000);
+                        }
+                    }
+                }
+            }
+        }
+    </script>
 
 </body>
 </html>

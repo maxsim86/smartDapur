@@ -1,11 +1,50 @@
-<table border="1" width="100%" style="border-collapse: collapse;">
-    <tr><th>Barang</th><th>Kuantiti</th></tr>
+<style>
+    table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; }
+    td { padding: 12px; border-bottom: 1px solid #eee; vertical-align: middle; }
+    .badge { padding: 4px 8px; border-radius: 12px; font-size: 0.9em; font-weight: bold; background: #eee; }
+    .btn-icon { background: none; border: 1px solid #ddd; padding: 5px 8px; cursor: pointer; border-radius: 4px; }
+    .btn-icon:hover { background: #eee; }
+</style>
+
+<table>
     {% for item in items %}
-    <tr>
-        <td style="padding:10px">{{ item['name'] }} <br> <small>{{ item['barcode'] }}</small></td>
-        <td style="padding:10px; text-align:center; font-weight:bold;">{{ item['quantity'] }}</td>
+    <tr x-data="{ confirmDelete: false }">
+        <td>
+            <strong>{{ item['name'] }}</strong><br>
+            <small style="color:gray">{{ item['barcode'] }}</small>
+        </td>
+        
+        <td style="text-align: right; min-width: 140px;">
+            <template x-if="confirmDelete">
+                <div style="display:inline-block">
+                    <span style="color:red; font-size:0.8em; margin-right:5px;">Padam?</span>
+                    <button class="btn-icon" style="background:#ffebee; color:red; border-color:red"
+                            hx-post="/update" 
+                            hx-vals='{"barcode": "{{ item["barcode"] }}", "action": "delete"}' 
+                            hx-target="#inventory-area">Ya</button>
+                    <button class="btn-icon" @click="confirmDelete = false">X</button>
+                </div>
+            </template>
+
+            <template x-if="!confirmDelete">
+                <div style="display:inline-block">
+                    <span class="badge">{{ item['quantity'] }}</span>
+                    
+                    <button class="btn-icon" style="color:green"
+                            hx-post="/update" hx-vals='{"barcode": "{{ item["barcode"] }}", "action": "add"}' 
+                            hx-target="#inventory-area">+</button>
+                    
+                    <button class="btn-icon" style="color:orange"
+                            hx-post="/update" hx-vals='{"barcode": "{{ item["barcode"] }}", "action": "remove"}' 
+                            hx-target="#inventory-area">-</button>
+                            
+                    <button class="btn-icon" style="color:gray; margin-left:5px;"
+                            @click="confirmDelete = true">🗑️</button>
+                </div>
+            </template>
+        </td>
     </tr>
     {% else %}
-    <tr><td colspan="2" style="padding:10px; text-align:center;">Tiada rekod. Sila scan.</td></tr>
+    <tr><td colspan="2" style="text-align:center; padding:20px;">Tiada barang.</td></tr>
     {% endfor %}
 </table>
